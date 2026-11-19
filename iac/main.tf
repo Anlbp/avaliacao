@@ -18,8 +18,8 @@ variable "ssh_public_key_path" {
 
 locals {
   vms = {
-    web = { ip = "192.168.100.11" }
-    db  = { ip = "192.168.100.12" }
+    web = { ip = "192.168.100.11", mac = "52:54:00:00:01:11" }
+    db  = { ip = "192.168.100.12", mac = "52:54:00:00:01:12" }
   }
 }
 
@@ -33,10 +33,14 @@ resource "libvirt_network" "lab" {
   name      = "lab"
   mode      = "nat"
   addresses = ["192.168.100.0/24"]
+
+  dhcp {
+    enabled = true
+  }
 }
 
 resource "libvirt_volume" "base" {
-  name   = "ubuntu-22.04-base.qcow2"
+  name   = "debian-12-base.qcow2"
   pool   = libvirt_pool.lab.name
   source = "/var/lib/libvirt/images/debian-12-base.qcow2"
   format = "qcow2"
@@ -59,15 +63,18 @@ resource "libvirt_cloudinit_disk" "init" {
     ssh_key  = trimspace(file(pathexpand(var.ssh_public_key_path)))
   })
   network_config = yamlencode({
-    version = 2
-    ethernets = {
-      nic = {
-        match       = { name = "en*" }
-        addresses   = ["${each.value.ip}/24"]
-        gateway4    = "192.168.100.1"
-        nameservers = { addresses = ["1.1.1.1", "8.8.8.8"] }
-      }
-    }
+    version = 1
+    config = [{
+      type        = "physical"
+      name        = "eth0"
+      mac_address = each.value.mac
+      subnets = [{
+        type            = "static"
+        address         = "${each.value.ip}/24"
+        gateway         = "192.168.100.1"
+        dns_nameservers = ["1.1.1.1", "8.8.8.8"]
+      }]
+    }]
   })
 }
 
@@ -78,8 +85,14 @@ resource "libvirt_domain" "vm" {
   vcpu      = 2
   cloudinit = libvirt_cloudinit_disk.init[each.key].id
 
+  cpu {
+    mode = "host-passthrough"
+  }
+
   network_interface {
-    network_id = libvirt_network.lab.id
+    network_id     = libvirt_network.lab.id
+    mac            = each.value.mac
+    wait_for_lease = false
   }
 
   disk {

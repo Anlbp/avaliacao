@@ -3,11 +3,40 @@
   hosts: all
   become: true
   tasks:
-    - name: Instalar Docker e Compose
+    - name: Dependências
       ansible.builtin.apt:
         name:
-          - docker.io
-          - docker-compose-v2
+          - ca-certificates
+          - curl
+          - gnupg
+        update_cache: true
+        state: present
+
+    - name: Criar diretório de chaves
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Chave GPG da Docker
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Repositório da Docker
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian bookworm stable"
+        filename: docker
+        state: present
+
+    - name: Instalar Docker CE e Compose v2
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
         update_cache: true
         state: present
 
@@ -36,6 +65,7 @@
         content: |
           MYSQL_ROOT_PASSWORD={{ mysql_root_password }}
           MYSQL_PASSWORD={{ mysql_password }}
+          WEB_ORIGIN=http://{{ hostvars[groups['web'][0]].ansible_host }}
 
     - name: Subir API e MySQL
       community.docker.docker_compose_v2:

@@ -27,6 +27,7 @@ services:
       DB_USER: app
       DB_PASSWORD: ${MYSQL_PASSWORD}
       DB_NAME: livraria
+      WEB_ORIGIN: ${WEB_ORIGIN}
     ports:
       - "3000:3000"
 

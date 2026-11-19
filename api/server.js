@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
@@ -9,8 +10,11 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
 });
-
 const app = express();
+app.use(cors({
+  origin: process.env.WEB_ORIGIN,
+  methods: ['GET', 'POST'],
+}));
 app.use(express.json());
 
 const handle = (fn) => (req, res) =>
@@ -28,7 +32,7 @@ app.get('/livros', handle(async (_req, res) => {
   res.json(rows);
 }));
 
-app.post('/livros', handle(async (req, res) => {
+app.post('/livro', handle(async (req, res) => {
   const { titulo, autor, ano } = req.body ?? {};
   if (!titulo || !autor) {
     return res.status(400).json({ erro: 'titulo e autor são obrigatórios' });

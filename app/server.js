@@ -17,7 +17,7 @@ app.get('/api/livros', async (_req, res) => {
 
 app.post('/api/livros', async (req, res) => {
   try {
-    const r = await fetch(`${API_URL}/livros`, {
+    const r = await fetch(`${API_URL}/livro`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(req.body),
