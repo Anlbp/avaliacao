@@ -1,1 +1,66 @@
+---
+- name: Docker em todas as VMs
+  hosts: all
+  become: true
+  tasks:
+    - name: Instalar Docker e Compose
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        update_cache: true
+        state: present
 
+    - name: Habilitar Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+- name: VM2 - API e MySQL
+  hosts: db
+  become: true
+  vars:
+    mysql_root_password: "troque_root"
+    mysql_password: "troque_app"
+  tasks:
+    - name: Copiar projeto da API
+      ansible.builtin.copy:
+        src: ../api/
+        dest: /opt/api/
+
+    - name: Criar .env
+      ansible.builtin.copy:
+        dest: /opt/api/.env
+        mode: "0600"
+        content: |
+          MYSQL_ROOT_PASSWORD={{ mysql_root_password }}
+          MYSQL_PASSWORD={{ mysql_password }}
+
+    - name: Subir API e MySQL
+      community.docker.docker_compose_v2:
+        project_src: /opt/api
+        build: always
+        state: present
+
+- name: VM1 - Aplicação web
+  hosts: web
+  become: true
+  tasks:
+    - name: Copiar projeto web
+      ansible.builtin.copy:
+        src: ../app/
+        dest: /opt/app/
+
+    - name: Criar .env
+      ansible.builtin.copy:
+        dest: /opt/app/.env
+        mode: "0600"
+        content: |
+          API_URL=http://{{ hostvars[groups['db'][0]].ansible_host }}:3000
+
+    - name: Subir aplicação web
+      community.docker.docker_compose_v2:
+        project_src: /opt/app
+        build: always
+        state: present

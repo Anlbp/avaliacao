@@ -1,1 +1,14 @@
-
+#cloud-config
+hostname: ${hostname}
+users:
+  - name: ubuntu
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICw+izoOJJWNjv5l/rwJ/XXO1V+DiOe24bZMTr1bji5D renan@aluno-OptiPlex-SFF-Plus-7020
+package_update: true
+packages:
+  - python3
+  - qemu-guest-agent
+runcmd:
+  - systemctl enable --now qemu-guest-agent

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cadastro de Livros</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    form { display: grid; gap: .5rem; margin-bottom: 2rem; }
+    input, button { padding: .5rem; font-size: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #ccc; padding: .5rem; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Cadastro de Livros</h1>
+  <form id="form">
+    <input name="titulo" placeholder="Título" required maxlength="200">
+    <input name="autor" placeholder="Autor" required maxlength="120">
+    <input name="ano" type="number" placeholder="Ano" min="0" max="2100">
+    <button type="submit">Cadastrar</button>
+  </form>
+  <table>
+    <thead><tr><th>ID</th><th>Título</th><th>Autor</th><th>Ano</th></tr></thead>
+    <tbody id="lista"></tbody>
+  </table>
+
+  <script>
+    const lista = document.getElementById('lista');
+
+    async function carregar() {
+      const res = await fetch('/api/livros');
+      const livros = await res.json();
+      lista.replaceChildren(...livros.map((l) => {
+        const tr = document.createElement('tr');
+        [l.id, l.titulo, l.autor, l.ano ?? ''].forEach((v) => {
+          const td = document.createElement('td');
+          td.textContent = v;
+          tr.appendChild(td);
+        });
+        return tr;
+      }));
+    }
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const body = {
+        titulo: f.titulo.value.trim(),
+        autor: f.autor.value.trim(),
+        ano: f.ano.value ? Number(f.ano.value) : null,
+      };
+      const res = await fetch('/api/livros', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) { f.reset(); carregar(); } else { alert('Erro ao cadastrar'); }
+    });
+
+    carregar();
+  </script>
+</body>
+</html>
